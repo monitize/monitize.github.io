@@ -1,0 +1,5 @@
+FROM llama2
+
+PARAMETER temperature 0.1
+
+SYSTEM You are a financial assistant, who help clasify or categorise expenses and income from bank transactions.

@@ -1,0 +1,63 @@
+import spacy
+import json
+
+# Load the spaCy English model
+nlp = spacy.load("en_core_web_sm")
+
+# Sample SMS text
+sms_text = "Hi, INR 100.00 has been added to your Smart Deposit account no XXXXXXXX9954. You can check it in your Fi app -Federal Bank"
+
+# Initialize the JSON template with empty values
+data = {
+    "TransactionDetails": {
+        "Amount": 0.0,
+        "currency": "",
+        "TransactionType": "",
+        "Message": ""
+    },
+    "LocationDetails": {
+        "Location": None
+    },
+    "AccountInformation": {
+        "AccountNumber": "",
+        "AppName": "",
+        "accountType": "",
+        "BankName": ""
+    },
+    "Category": {
+        "MainCategory": "",
+        "SubCategory": "",
+        "Description": ""
+    }
+}
+
+# Process the SMS text with spaCy
+doc = nlp(sms_text)
+
+# Extract relevant information
+for token in doc:
+    if token.like_num:
+        data["TransactionDetails"]["Amount"] = float(token.text)
+        data["TransactionDetails"]["currency"] = "INR"
+    elif "account no" in token.text.lower():
+        account_number = next((t.text for t in token.subtree if t.is_digit or t.is_alpha), "")
+        data["AccountInformation"]["AccountNumber"] = account_number
+    elif "app" in token.text.lower():
+        data["AccountInformation"]["AppName"] = token.text
+    elif "-" in token.text:
+        bank_name = token.text.split("-")[-1].strip()
+        data["AccountInformation"]["BankName"] = bank_name
+
+# Fill in the remaining static values
+data["TransactionDetails"]["TransactionType"] = "Deposit"
+data["TransactionDetails"]["Message"] = f"INR {data['TransactionDetails']['Amount']} has been added to your Smart Deposit account"
+data["AccountInformation"]["accountType"] = "Smart Deposit"
+data["Category"]["MainCategory"] = "Banking"
+data["Category"]["SubCategory"] = "Deposit"
+data["Category"]["Description"] = data["TransactionDetails"]["Message"]
+
+# Convert the data dictionary to a JSON string
+json_data = json.dumps(data, indent=2)
+
+# Print the JSON representation
+print(json_data)
